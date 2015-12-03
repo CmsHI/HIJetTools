@@ -37,11 +37,17 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 	
 	TH1F *hRelResponse[nbins_pt];
 	TH1F *hMPFResponse[nbins_pt];
+
+	TH1F *hAbsPhoResponse[nbins_pt];
+	TH1F *hMPFAbsPhoResponse[nbins_pt];
+
 	TH1F *avgAHisto[nbins_pt][nbins_eta];
 	TH1F *avgBHisto[nbins_pt][nbins_eta];
 	for(int i=0; i<nbins_pt; i++){
 		hRelResponse[i] = new TH1F(Form("hRelResponse_pt%d",i),"",nbins_eta,xbins_eta);
-		hMPFResponse[i] = new TH1F(Form("hMPFResponse%d",i),"",nbins_eta,xbins_eta);
+		hMPFResponse[i] = new TH1F(Form("hMPFResponse_pt%d",i),"",nbins_eta,xbins_eta);
+		hAbsPhoResponse[i] = new TH1F(Form("hAbsPhoResponse_pt%d",i),"",nbins_eta,xbins_eta);
+		hMPFAbsPhoResponse[i] = new TH1F(Form("hMPFAbsPhoResponse_pt%d",i),"",nbins_eta,xbins_eta);
 		for(int j=0; j<nbins_eta; j++){
 			avgAHisto[i][j] = new TH1F(Form("avgAHisto_pt%d_eta%d",i,j),"",30,-2,2);
 			avgBHisto[i][j] = new TH1F(Form("avgBHisto_pt%d_eta%d",i,j),"",30,-2,2);
@@ -52,20 +58,22 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 	int nEntries[nbins_pt][nbins_eta];
 	double avgB[nbins_pt][nbins_eta];
 	int nEntriesB[nbins_pt][nbins_eta];
+	double avgAbsPhoResponse[nbins_pt][nbins_eta];
+	int nEntriesAbs[nbins_pt][nbins_eta];
 	for(int i=0; i<nbins_pt; i++){
 		for(int j=0; j<nbins_eta; j++){
 			avgA[i][j]=0;
 			nEntries[i][j]=0;
 			avgB[i][j]=0;
 			nEntriesB[i][j]=0;
+			avgAbsPhoResponse[i][j]=0;
+			nEntriesAbs[i][j]=0;
 		}
 	}
 
-	std::string infile_Forest = "ppHighPtJet80_list.txt";
+	std::string infile_Forest = "PhotonZPD.txt";
 	std::ifstream instr_Forest(infile_Forest.c_str(),std::ifstream::in);
 	std::string filename_Forest;
-	TChain *jtTree = new TChain("ak4PFJetAnalyzer/t");
-	TChain *pfTree = new TChain("pfcandAnalyzer/pfTree");
 
 	for(int ifile = 0;ifile<startfile;ifile++){
 		instr_Forest>>filename_Forest;
@@ -77,10 +85,12 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 		TFile *fin = TFile::Open(filename_Forest.c_str());
 		TTree *jtTree = (TTree*)fin->Get("ak4PFJetAnalyzer/t");
 		TTree *pfTree = (TTree*)fin->Get("pfcandAnalyzer/pfTree");
+		TTree *phoTree = (TTree*)fin->Get("ggHiNtuplizer/EventTree");
 
 		float pt_F[1000], eta_F[1000], phi_F[1000], rawpt_F[1000], m_F[1000];
 		float pfPt[10000], pfEta[10000], pfPhi[10000];
-		int nref, nPFpart, pfId[10000];
+		int nref, nPFpart, pfId[10000], nPho;
+		vector<float> *phoEt=0, *phoEta=0, *phoPhi=0; 
 
 		jtTree->SetBranchAddress("jtpt",pt_F);
 		jtTree->SetBranchAddress("jteta",eta_F);
@@ -93,6 +103,10 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 		pfTree->SetBranchAddress("pfEta",pfEta);
 		pfTree->SetBranchAddress("pfPhi",pfPhi);
 		pfTree->SetBranchAddress("pfId",pfId);
+		phoTree->SetBranchAddress("nPho",&nPho);
+		phoTree->SetBranchAddress("phoEt",&phoEt);
+		phoTree->SetBranchAddress("phoEta",&phoEta);
+		phoTree->SetBranchAddress("phoPhi",&phoPhi);
 
 		cout << "entries: "<< jtTree->GetEntries() << endl;
 		int totalEntries = jtTree->GetEntries();
@@ -100,8 +114,9 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 		for(int ientry=0; ientry<totalEntries; ientry++){
 			jtTree->GetEntry(ientry);
 			pfTree->GetEntry(ientry);
+			phoTree->GetEntry(ientry);
 
-			if(ientry && ientry%1000000==0) cout << "entry: "<< ientry << endl;
+			if(ientry && ientry%100000==0) cout << "entry: "<< ientry << endl;
 
 		//Doing standard Rrel method
 			if(nref>1){
@@ -168,8 +183,20 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 					avgBHisto[ptBin][etaBin]->Fill(jetVec.Dot(missEt) / ( 2*avgPt * jetVec.Mag()));
 					nEntriesB[ptBin][etaBin]++;
 				}
+
+				for(int i=0; i<nPho; i++){
+					if(phoEt->at(i)>30){
+						int etaBin = findEtaBin(phoEta->at(i),nbins_eta,xbins_eta);
+						int ptBin = findPtBin(phoEt->at(i),nbins_pt,xbins_pt);
+						TLorentzVector phoVec(phoEt->at(i),phoEta->at(i),phoPhi->at(i),0.);
+						double num = missEt.Dot(phoVec);
+						avgAbsPhoResponse[ptBin][etaBin] += (1+(num/phoVec.Dot(phoVec)));
+						nEntriesAbs[ptBin][etaBin]++;
+					}
+				}
 			}
 		} //close entries
+		fin->Close();
 	} //close file loop
 
 	for(int i=0; i<nbins_pt; i++){
@@ -184,13 +211,19 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 			if(nEntriesB[i][j]) hMPFResponse[i]->SetBinError(j+1,hMPFResponse[i]->GetBinContent(j+1)*(1./sqrt(nEntriesB[i][j])));
 			else hMPFResponse[i]->SetBinContent(j+1,0);
 
-			int totEntriesA=0, totEntriesB=0;
+			if(nEntriesAbs[i][j]) hMPFAbsPhoResponse[i]->SetBinContent(j+i, avgAbsPhoResponse[i][j]/nEntriesAbs[i][j]);
+			if(nEntriesAbs[i][j]) hMPFAbsPhoResponse[i]->SetBinError(j+1,hMPFAbsPhoResponse[i]->GetBinContent(j+1)*(1./sqrt(nEntriesAbs[i][j])));
+			else hMPFAbsPhoResponse[i]->SetBinContent(j+1,0);
+
+			int totEntriesA=0, totEntriesB=0, totEntriesAbs=0;
 			for(int j=0; j<nbins_eta; j++){ 
 				totEntriesA+=nEntries[i][j]; 
-				totEntriesB+=nEntriesB[i][j]; 
+				totEntriesB+=nEntriesB[i][j];
+				totEntriesAbs+=nEntriesAbs[i][j];
 			}
 			hRelResponse[i]->SetEntries(totEntriesA);
 			hMPFResponse[i]->SetEntries(totEntriesB);
+			hMPFAbsPhoResponse[i]->SetEntries(totEntriesAbs);
 		}
 	}
 	
@@ -198,15 +231,19 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 	TFile *fout = new TFile("relDijetResponse.root","recreate");
 	fout->cd();
 	for(int i=0; i<nbins_pt; i++){
-		hRelResponse[i]->Write();
 		hRelResponse[i]->SetMarkerColor(color[i]);
 		hRelResponse[i]->SetLineColor(color[i]);
-		hRelResponse[i]->Scale(1./hRelResponse[i]->Integral());
+		hRelResponse[i]->Write();
+		//hRelResponse[i]->Scale(1./hRelResponse[i]->Integral());
 
-		hMPFResponse[i]->Write();
 		hMPFResponse[i]->SetMarkerColor(color[i]);
 		hMPFResponse[i]->SetLineColor(color[i]);
-		hMPFResponse[i]->Scale(1./hMPFResponse[i]->Integral());
+		hMPFResponse[i]->Write();
+		//hMPFResponse[i]->Scale(1./hMPFResponse[i]->Integral());
+
+		hMPFAbsPhoResponse[i]->SetMarkerColor(color[i]);
+		hMPFAbsPhoResponse[i]->SetLineColor(color[i]);
+		hMPFAbsPhoResponse[i]->Write();
 		for(int j=0; j<nbins_eta; j++){
 			avgAHisto[i][j]->Write();
 			avgBHisto[i][j]->Write();
