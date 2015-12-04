@@ -4,6 +4,9 @@
 #include "TH1F.h"
 #include <iostream>
 #include <fstream>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include "TLorentzVector.h"
 
 using namespace std;
@@ -24,11 +27,42 @@ int findPtBin(float pt, int nbins_pt, double* xbins_pt){
 	return nbins_pt-1;
 }
 
+TLorentzVector findMissEt(int nPFpart, int* pfId, float* pfPt, float* pfEta, float* pfPhi, int nref, float* pt_F, float* rawpt_F, float* eta_F, float* phi_F, float* m_F, float* eSum, float *phoSum){
+	
+	TLorentzVector missEt(0,0,0,0);
+	for(int i=0; i<nPFpart; i++){
+		TLorentzVector pfp;
+		double pfMass=0;
+			
+		if(pfId[i]==1 || pfId[i]==4){ pfMass = 0.1395702; }
+		pfp.SetPtEtaPhiM(pfPt[i],pfEta[i],pfPhi[i],pfMass); 
+		pfp.SetPz(0.); //2d projection in x-y plane 
+		missEt += pfp;
+	}
+	//include jet residuals
+	for(int i=0; i<nref; i++){
+		if(pt_F[i]>15){
+			TLorentzVector jtTmp(pt_F[i],eta_F[i],phi_F[i],m_F[i]);
+			if((eSum[i]+phoSum[i])/jtTmp.E() < 0.9){
+				TLorentzVector jt;
+				jt.SetPtEtaPhiM(pt_F[i]-rawpt_F[i],eta_F[i],phi_F[i],m_F[i]); 
+				jt.SetPz(0.); //project to x-y plane
+				missEt += jt;
+			}
+		}
+	}
+	//rotate to get *missing* ET from residual ET
+	missEt*=-1;
+	missEt.SetE(0.);  //really only care about the eT (not full E)
+	//cout << "missEt:  Mag: " << missEt.Mag() << endl;
+	//missEt.Print();
+	return missEt;
+}
 
-void deriveDijetResponse(int startfile=0, int endfile=1){
+void deriveDijetResponse(int startfile=0, int endfile=1, bool isMC=1){
 
-	const int nbins_pt = 3;
-	double xbins_pt[nbins_pt+1] = {60,110,200,1000};
+	const int nbins_pt = 5;
+	double xbins_pt[nbins_pt+1] = {40,60,80,110,200,1000};
 	const int nbins_eta = 20;
 	double xbins_eta[nbins_eta+1];
 	for(int i=0; i<=nbins_eta; i++){
@@ -71,14 +105,20 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 		}
 	}
 
-	std::string infile_Forest = "PhotonZPD.txt";
+	std::string infile_Forest;
+	if(isMC) infile_Forest = "PythiaQCD50_TuneCUETP8M1_757p1.txt";
+	else infile_Forest = "PhotonZPD.txt";
 	std::ifstream instr_Forest(infile_Forest.c_str(),std::ifstream::in);
 	std::string filename_Forest;
 
 	for(int ifile = 0;ifile<startfile;ifile++){
 		instr_Forest>>filename_Forest;
 	}
+
+	int totalEntries = 0;
 	for(int ifile = startfile; ifile<endfile; ++ifile){
+
+		//signal(SIGINT,break);
 		
 		instr_Forest>>filename_Forest;
 		cout << "opening file " << filename_Forest << endl;
@@ -87,7 +127,7 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 		TTree *pfTree = (TTree*)fin->Get("pfcandAnalyzer/pfTree");
 		TTree *phoTree = (TTree*)fin->Get("ggHiNtuplizer/EventTree");
 
-		float pt_F[1000], eta_F[1000], phi_F[1000], rawpt_F[1000], m_F[1000];
+		float pt_F[1000], eta_F[1000], phi_F[1000], rawpt_F[1000], m_F[1000], eSum[1000], phoSum[1000];
 		float pfPt[10000], pfEta[10000], pfPhi[10000];
 		int nref, nPFpart, pfId[10000], nPho;
 		vector<float> *phoEt=0, *phoEta=0, *phoPhi=0; 
@@ -98,6 +138,8 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 		jtTree->SetBranchAddress("jtm",m_F);
 		jtTree->SetBranchAddress("rawpt",rawpt_F);
 		jtTree->SetBranchAddress("nref",&nref);
+		jtTree->SetBranchAddress("eSum",&eSum);
+		jtTree->SetBranchAddress("photonSum",&phoSum);
 		pfTree->SetBranchAddress("nPFpart",&nPFpart);
 		pfTree->SetBranchAddress("pfPt",pfPt);
 		pfTree->SetBranchAddress("pfEta",pfEta);
@@ -108,15 +150,45 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 		phoTree->SetBranchAddress("phoEta",&phoEta);
 		phoTree->SetBranchAddress("phoPhi",&phoPhi);
 
-		cout << "entries: "<< jtTree->GetEntries() << endl;
-		int totalEntries = jtTree->GetEntries();
+		cout << "file entries: "<< jtTree->GetEntries() << endl;
 
-		for(int ientry=0; ientry<totalEntries; ientry++){
+		for(int ientry=0; ientry<jtTree->GetEntries(); ientry++){
 			jtTree->GetEntry(ientry);
 			pfTree->GetEntry(ientry);
 			phoTree->GetEntry(ientry);
 
-			if(ientry && ientry%100000==0) cout << "entry: "<< ientry << endl;
+			//signal(SIGINT,break);
+			totalEntries++;
+
+			if(nPFpart > 10000 || nref > 1000) cout << " warning! nPF: "<< nPFpart << " and njet: "<< nref << endl;
+
+			if(totalEntries && totalEntries%100000==0) cout << "entry: "<< ientry << endl;
+
+			//first look for photon balance (AN2013-179 / JME-13-004)
+			for(int i=0; i<nPho; i++){
+				if(phoEt->at(i)>30 && abs(phoEta->at(i))<1.4442 && nref>0){
+					//cout << "photon found, Et: " << phoEt->at(i) << endl;
+					double dphi = abs(phoPhi->at(i)-phi_F[0]);
+					bool passEvt=false;
+					if(nref>1){
+						if(dphi>2.95 && (pt_F[1]/phoEt->at(i))<0.2){
+							passEvt=true;
+						}
+					}
+					else if(nref==1 && dphi>2.95) passEvt=true;
+					if(passEvt){
+						cout << "photon found! " << endl;
+						TLorentzVector missEt = findMissEt(nPFpart, pfId, pfPt, pfEta, pfPhi, nref, pt_F, rawpt_F, eta_F, phi_F, m_F, eSum, phoSum);
+
+						int etaBin = findEtaBin(phoEta->at(i),nbins_eta,xbins_eta);
+						int ptBin = findPtBin(phoEt->at(i),nbins_pt,xbins_pt);
+						TLorentzVector phoVec(phoEt->at(i),phoEta->at(i),phoPhi->at(i),0.);
+						double num = missEt.Dot(phoVec);
+						avgAbsPhoResponse[ptBin][etaBin] += (1+(num/phoVec.Dot(phoVec)));
+						nEntriesAbs[ptBin][etaBin]++;
+					}
+				}
+			}
 
 		//Doing standard Rrel method
 			if(nref>1){
@@ -138,61 +210,27 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 						continue;
 					}
 				}
+				double dphi = abs(phi_F[rJet]-phi_F[pJet]);
+				if(dphi>(2*3.14159)) dphi-=(2*3.14159);
+				if(dphi < 2.7) continue;
 				int etaBin = findEtaBin(eta_F[pJet],nbins_eta,xbins_eta);
 				int ptBin = findPtBin(pt_F[pJet],nbins_pt,xbins_pt);
 	             //if(etaBin>xbins_eta[nbins_eta] || ptBin>xbins_pt[nbins_pt]) cout << "OH NO! Bin Mismatch!" << endl;
-				avgA[ptBin][etaBin] += (pt_F[pJet]-pt_F[rJet])/avgPt;
-				avgAHisto[ptBin][etaBin]->Fill((pt_F[pJet]-pt_F[rJet])/avgPt);
+				avgA[ptBin][etaBin] += 0.5*(pt_F[pJet]-pt_F[rJet])/avgPt;
+				avgAHisto[ptBin][etaBin]->Fill(0.5*(pt_F[pJet]-pt_F[rJet])/avgPt);
 				nEntries[ptBin][etaBin]++;
-			}
+			
 
-	    //Starting MPF Method
-			if(nref>1){
-				double avgPt = 0.5*(pt_F[0]+pt_F[1]);
-				if(nref>2){
-					if(pt_F[2]/avgPt > 0.2){
-						continue;
-					}
-				}
-	    	//start by summing the pf candidates
-				TLorentzVector missEt(0,0,0,0);
-				for(int i=0; i<nPFpart; i++){
-					TLorentzVector pfp;
-					double pfMass=0;
-					if(abs(pfEta[i])<1.3){
-						if(pfId[i]==1 || pfId[i]==4){ pfMass = 0.1395702; }
-						pfp.SetPtEtaPhiE(pfPt[i],pfEta[i],pfPhi[i],pfMass);
-						missEt += pfp;
-					}
-				}
-	    	//include jet residuals
-				for(int i=0; i<nref; i++){
-					if(abs(eta_F[i])<1.3){
-						TLorentzVector jt(pt_F[i]-rawpt_F[i],eta_F[i],phi_F[i],m_F[i]);
-						missEt += jt;
-					}
-				}
-	        //rotate to get *missing* ET from residual ET
-				missEt*=-1;
+	            //Starting MPF Method
+				TLorentzVector missEt = findMissEt(nPFpart, pfId, pfPt, pfEta, pfPhi, nref, pt_F, rawpt_F, eta_F, phi_F, m_F, eSum, phoSum);
 
 				for(int i=0; i<nref; i++){
-					int etaBin = findEtaBin(eta_F[i],nbins_eta,xbins_eta);
-					int ptBin = findPtBin(pt_F[i],nbins_pt,xbins_pt);
-					TLorentzVector jetVec(pt_F[i],eta_F[i],phi_F[i],m_F[i]);
-					avgB[ptBin][etaBin] += jetVec.Dot(missEt) / ( 2*avgPt * jetVec.Mag());
-					avgBHisto[ptBin][etaBin]->Fill(jetVec.Dot(missEt) / ( 2*avgPt * jetVec.Mag()));
+					int etaBin = findEtaBin(eta_F[pJet],nbins_eta,xbins_eta);
+					int ptBin = findPtBin(pt_F[pJet],nbins_pt,xbins_pt);
+					TLorentzVector jetVec(pt_F[rJet],eta_F[rJet],phi_F[rJet],m_F[rJet]);
+					avgB[ptBin][etaBin] += (missEt.Dot(jetVec) / ( 2*avgPt * jetVec.Mag()));
+					avgBHisto[ptBin][etaBin]->Fill((missEt.Dot(jetVec) / ( 2*avgPt * jetVec.Mag())));
 					nEntriesB[ptBin][etaBin]++;
-				}
-
-				for(int i=0; i<nPho; i++){
-					if(phoEt->at(i)>30){
-						int etaBin = findEtaBin(phoEta->at(i),nbins_eta,xbins_eta);
-						int ptBin = findPtBin(phoEt->at(i),nbins_pt,xbins_pt);
-						TLorentzVector phoVec(phoEt->at(i),phoEta->at(i),phoPhi->at(i),0.);
-						double num = missEt.Dot(phoVec);
-						avgAbsPhoResponse[ptBin][etaBin] += (1+(num/phoVec.Dot(phoVec)));
-						nEntriesAbs[ptBin][etaBin]++;
-					}
 				}
 			}
 		} //close entries
@@ -227,22 +265,29 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
 		}
 	}
 	
-	int color[4] = {1,2,4,8};
-	TFile *fout = new TFile("relDijetResponse.root","recreate");
+	int color[5] = {1,2,4,8,20};
+	TFile *fout;
+	if(isMC) fout = new TFile("relDijetResponse_MC.root","recreate");
+	else fout = new TFile("relDijetResponse.root","recreate");
 	fout->cd();
 	for(int i=0; i<nbins_pt; i++){
 		hRelResponse[i]->SetMarkerColor(color[i]);
 		hRelResponse[i]->SetLineColor(color[i]);
+		hRelResponse[i]->SetTitle(Form("Rel, %g<p_{T}<%g GeV",xbins_pt[i],xbins_pt[i+1]));
 		hRelResponse[i]->Write();
 		//hRelResponse[i]->Scale(1./hRelResponse[i]->Integral());
 
 		hMPFResponse[i]->SetMarkerColor(color[i]);
 		hMPFResponse[i]->SetLineColor(color[i]);
+		hMPFResponse[i]->SetMarkerStyle(21);
+		hMPFResponse[i]->SetLineStyle(2);
+		hRelResponse[i]->SetTitle(Form("MPF, %g<p_{T}<%g GeV",xbins_pt[i],xbins_pt[i+1]));
 		hMPFResponse[i]->Write();
 		//hMPFResponse[i]->Scale(1./hMPFResponse[i]->Integral());
 
 		hMPFAbsPhoResponse[i]->SetMarkerColor(color[i]);
 		hMPFAbsPhoResponse[i]->SetLineColor(color[i]);
+		hMPFAbsPhoResponse[i]->SetTitle(Form("MPF Abs, %g<p_{T}<%g GeV",xbins_pt[i],xbins_pt[i+1]));
 		hMPFAbsPhoResponse[i]->Write();
 		for(int j=0; j<nbins_eta; j++){
 			avgAHisto[i][j]->Write();
