@@ -166,26 +166,21 @@ void deriveDijetResponse(int startfile=0, int endfile=1, bool isMC=1){
 
 			//first look for photon balance (AN2013-179 / JME-13-004)
 			for(int i=0; i<nPho; i++){
-				if(phoEt->at(i)>30 && abs(phoEta->at(i))<1.4442 && nref>0){
+				if(phoEt->at(i)>30 && abs(phoEta->at(i))<1.4442){
 					//cout << "photon found, Et: " << phoEt->at(i) << endl;
-					double dphi = abs(phoPhi->at(i)-phi_F[0]);
-					bool passEvt=false;
-					if(nref>1){
-						if(dphi>2.95 && (pt_F[1]/phoEt->at(i))<0.2){
-							passEvt=true;
-						}
-					}
-					else if(nref==1 && dphi>2.95) passEvt=true;
-					if(passEvt){
-						cout << "photon found! " << endl;
-						TLorentzVector missEt = findMissEt(nPFpart, pfId, pfPt, pfEta, pfPhi, nref, pt_F, rawpt_F, eta_F, phi_F, m_F, eSum, phoSum);
+					for(int ijet=0; ijet<nref-1; ijet++){
+						if(abs(phoPhi->at(i)-phi_F[ijet])>2.95 && pt_F[ijet+1]/phoEt->at(i)<0.2){
+							//cout << "jet photon pair found" << endl;
 
-						int etaBin = findEtaBin(phoEta->at(i),nbins_eta,xbins_eta);
-						int ptBin = findPtBin(phoEt->at(i),nbins_pt,xbins_pt);
-						TLorentzVector phoVec(phoEt->at(i),phoEta->at(i),phoPhi->at(i),0.);
-						double num = missEt.Dot(phoVec);
-						avgAbsPhoResponse[ptBin][etaBin] += (1+(num/phoVec.Dot(phoVec)));
-						nEntriesAbs[ptBin][etaBin]++;
+							TLorentzVector missEt = findMissEt(nPFpart, pfId, pfPt, pfEta, pfPhi, nref, pt_F, rawpt_F, eta_F, phi_F, m_F, eSum, phoSum);
+
+							int etaBin = findEtaBin(phoEta->at(i),nbins_eta,xbins_eta);
+							int ptBin = findPtBin(phoEt->at(i),nbins_pt,xbins_pt);
+							TLorentzVector phoVec(phoEt->at(i),phoEta->at(i),phoPhi->at(i),0.);
+							double num = missEt.Dot(phoVec);
+							avgAbsPhoResponse[ptBin][etaBin] += (1+(num/phoVec.Dot(phoVec)));
+							nEntriesAbs[ptBin][etaBin]++;
+						}
 					}
 				}
 			}
@@ -249,7 +244,7 @@ void deriveDijetResponse(int startfile=0, int endfile=1, bool isMC=1){
 			if(nEntriesB[i][j]) hMPFResponse[i]->SetBinError(j+1,hMPFResponse[i]->GetBinContent(j+1)*(1./sqrt(nEntriesB[i][j])));
 			else hMPFResponse[i]->SetBinContent(j+1,0);
 
-			if(nEntriesAbs[i][j]) hMPFAbsPhoResponse[i]->SetBinContent(j+i, avgAbsPhoResponse[i][j]/nEntriesAbs[i][j]);
+			if(nEntriesAbs[i][j]) hMPFAbsPhoResponse[i]->SetBinContent(j+1,avgAbsPhoResponse[i][j]/nEntriesAbs[i][j]);
 			if(nEntriesAbs[i][j]) hMPFAbsPhoResponse[i]->SetBinError(j+1,hMPFAbsPhoResponse[i]->GetBinContent(j+1)*(1./sqrt(nEntriesAbs[i][j])));
 			else hMPFAbsPhoResponse[i]->SetBinContent(j+1,0);
 
