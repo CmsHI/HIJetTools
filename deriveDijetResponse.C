@@ -1,3 +1,10 @@
+
+/*****************
+* Macro for deriving the dijet relative and absolute response from data (or MC)
+* Uses JME-13-004 as a reference - "A" and "B" formulae are defined there
+* Kurt Jung, December 2015
+*******************/
+
 #include "TFile.h"
 #include "TTree.h"
 #include "TChain.h"
@@ -61,6 +68,8 @@ TLorentzVector findMissEt(int nPFpart, int* pfId, float* pfPt, float* pfEta, flo
 
 void deriveDijetResponse(int startfile=0, int endfile=1, bool isMC=1){
 
+	const double minJetPt = 100;
+
 	const int nbins_pt = 5;
 	double xbins_pt[nbins_pt+1] = {40,60,80,110,200,1000};
 	const int nbins_eta = 20;
@@ -83,8 +92,9 @@ void deriveDijetResponse(int startfile=0, int endfile=1, bool isMC=1){
 		hAbsPhoResponse[i] = new TH1F(Form("hAbsPhoResponse_pt%d",i),"",nbins_eta,xbins_eta);
 		hMPFAbsPhoResponse[i] = new TH1F(Form("hMPFAbsPhoResponse_pt%d",i),"",nbins_eta,xbins_eta);
 		for(int j=0; j<nbins_eta; j++){
-			avgAHisto[i][j] = new TH1F(Form("avgAHisto_pt%d_eta%d",i,j),"",30,-2,2);
-			avgBHisto[i][j] = new TH1F(Form("avgBHisto_pt%d_eta%d",i,j),"",30,-2,2);
+			avgAHisto[i][j] = new TH1F(Form("avgAHisto_pt%d_eta%d",i,j),"",50,-1,1);
+			avgBHisto[i][j] = new TH1F(Form("avgBHisto_pt%d_eta%d",i,j),"",50,-1,1);
+			hAvgAbsPhoResponse[i][j] = new TH1F(Form("hAvgAbsPhoResponse_pt%d_eta%d",i,j),"",50,-1,1);
 		}
 	}
 
@@ -169,6 +179,7 @@ void deriveDijetResponse(int startfile=0, int endfile=1, bool isMC=1){
 				if(phoEt->at(i)>30 && abs(phoEta->at(i))<1.4442){
 					//cout << "photon found, Et: " << phoEt->at(i) << endl;
 					for(int ijet=0; ijet<nref-1; ijet++){
+						if(pt_F[ijet]<minJetPt) continue;
 						if(abs(phoPhi->at(i)-phi_F[ijet])>2.95 && pt_F[ijet+1]/phoEt->at(i)<0.2){
 							//cout << "jet photon pair found" << endl;
 
@@ -179,6 +190,7 @@ void deriveDijetResponse(int startfile=0, int endfile=1, bool isMC=1){
 							TLorentzVector phoVec(phoEt->at(i),phoEta->at(i),phoPhi->at(i),0.);
 							double num = missEt.Dot(phoVec);
 							avgAbsPhoResponse[ptBin][etaBin] += (1+(num/phoVec.Dot(phoVec)));
+							hAvgAbsPhoResponse[ptBin][etaBin]->Fill(1+(num/phoVec.Dot(phoVec)));
 							nEntriesAbs[ptBin][etaBin]++;
 						}
 					}
@@ -205,6 +217,7 @@ void deriveDijetResponse(int startfile=0, int endfile=1, bool isMC=1){
 						continue;
 					}
 				}
+				if(pt_F[rJet]<minJetPt) continue;
 				double dphi = abs(phi_F[rJet]-phi_F[pJet]);
 				if(dphi>(2*3.14159)) dphi-=(2*3.14159);
 				if(dphi < 2.7) continue;
