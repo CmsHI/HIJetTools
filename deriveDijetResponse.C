@@ -226,7 +226,7 @@ void deriveDijetResponse(int startfile=0, int endfile=1){
       hMPFAbsPhoResponse[i]->SetEntries(totEntriesAbs);
     }
   }
-	
+  
   int color[4] = {1,2,4,8};
   TFile *fout = new TFile(Form("relDijetResponse_%d.root",endfile),"recreate");
   fout->cd();
