@@ -86,6 +86,8 @@ void deriveDijetResponse(int startfile=0, int endfile=1, bool isMC=1){
 
 	TH1F *avgAHisto[nbins_pt][nbins_eta];
 	TH1F *avgBHisto[nbins_pt][nbins_eta];
+	TH1F *hAvgAbsPhoResponse[nbins_pt][nbins_eta];
+	
 	for(int i=0; i<nbins_pt; i++){
 		hRelResponse[i] = new TH1F(Form("hRelResponse_pt%d",i),"",nbins_eta,xbins_eta);
 		hMPFResponse[i] = new TH1F(Form("hMPFResponse_pt%d",i),"",nbins_eta,xbins_eta);
