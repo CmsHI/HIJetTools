@@ -10,7 +10,7 @@
 
 using namespace std;
 
-void sumDijetResponse(std::string filename){
+void sumDijetResponse(std::string filename, bool isMC= true){
 
 	bool doDraw = true;
 
@@ -102,6 +102,7 @@ void sumDijetResponse(std::string filename){
 		l1->AddEntry(hMPFResponse[0],Form("%g<p_{T}<%g",xbins_pt[0],xbins_pt[1]));
 		for(int i=1; i<nbins_pt; i++){
 			hMPFResponse[i]->Draw("same");
+			if(isMC) l1->AddEntry("","PYTHIA, CUETP8M1 #hat{p_{T}}=80GeV/c","");
 			l1->AddEntry(hMPFResponse[i],Form("%g<p_{T}<%g",xbins_pt[i],xbins_pt[i+1]));
 		}
 		l1->Draw("Same");
@@ -113,9 +114,14 @@ void sumDijetResponse(std::string filename){
 		l2->AddEntry(hMPFAbsPhoResponse[0],Form("%g<p_{T}<%g",xbins_pt[0],xbins_pt[1]));
 		for(int i=1; i<nbins_pt; i++){
 			hMPFAbsPhoResponse[i]->Draw("same");
+			if(isMC) l1->AddEntry("","PYTHIA, CUETP8M1 #hat{p_{T}}=80GeV/c","");
 			l2->AddEntry(hMPFAbsPhoResponse[i],Form("%g<p_{T}<%g",xbins_pt[i],xbins_pt[i+1]));
 		}
 		l2->Draw("Same");
+
+		c1->SaveAs(Form("MPFresponse_%dMC.pdf",isMC),"RECREATE");
+		c2->SaveAs(Form("MPFABSPhoresponse_%dMC.pdf",isMC),"RECREATE");
+		
 
 	}
 
