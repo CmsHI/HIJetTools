@@ -230,7 +230,7 @@ void deriveDijetResponse(int startfile=0, int endfile=1, int isMC=1){
 	if(dphi>(2*3.14159)) dphi-=(2*3.14159);
 	if(dphi < 2.7) continue;
 	int etaBin = findEtaBin(eta_F[pJet],nbins_eta,xbins_eta);
-	int ptBin = findPtBin(pt_F[pJet],nbins_pt,xbins_pt);
+	int ptBin = findPtBin(avgPt,nbins_pt,xbins_pt);
 	//if(etaBin>xbins_eta[nbins_eta] || ptBin>xbins_pt[nbins_pt]) cout << "OH NO! Bin Mismatch!" << endl;
 	avgA[ptBin][etaBin] += 0.5*(pt_F[pJet]-pt_F[rJet])/avgPt;
 	avgAHisto[ptBin][etaBin]->Fill(0.5*(pt_F[pJet]-pt_F[rJet])/avgPt);
