@@ -1,6 +1,6 @@
 
 //Plotting macro to simply sum all the stuff in the deriveDijetResponse macro
-//K. Jung, December 2015
+//K. Jung, Raghav Kunnawalkam Elayavalli, December 2015
 
 
 #include <iostream>
@@ -43,7 +43,7 @@
 
 using namespace std;
 
-void sumDijetResponse(std::string filename="relDijetResponse_MC.root", int isMC= 1){
+void sumDijetResponse(std::string filename="test.root", int isMC= 0){
 
   bool doDraw = false;
 
@@ -63,6 +63,7 @@ void sumDijetResponse(std::string filename="relDijetResponse_MC.root", int isMC=
 			2.964,  3.314,   3.664, 4.013,
 			4.363,  4.716,  5.191};
   const int nbins_eta = sizeof(xbins_eta)/sizeof(double)-1;
+  
 	
   TH1F *hRelResponse[nbins_pt];
   TH1F *hMPFResponse[nbins_pt];
@@ -74,8 +75,15 @@ void sumDijetResponse(std::string filename="relDijetResponse_MC.root", int isMC=
   TH1F *avgBHisto[nbins_pt][nbins_eta];
   TH1F *hAvgAbsPhoResponse[nbins_pt][nbins_eta];
 
+  TH1D *h_avgA[nbins_pt][nbins_eta];
+  TH1D *h_nEntries[nbins_pt][nbins_eta];
+  TH1D *h_avgB[nbins_pt][nbins_eta];
+  TH1D *h_nEntriesB[nbins_pt][nbins_eta];
+  TH1D *h_avgAbsPhoResponse[nbins_pt][nbins_eta];
+  TH1D *h_nEntriesAbs[nbins_pt][nbins_eta];
+
   std::string type = "";
-  if(isMC) type = "PYTHIA, CUETP8M1";
+  if(isMC) type = "PYTHIA_HYDJET";
   else type = "Data";
 
   TFile *fin = new TFile(filename.c_str());
@@ -90,55 +98,73 @@ void sumDijetResponse(std::string filename="relDijetResponse_MC.root", int isMC=
       cout<<j<<endl;
       avgAHisto[i][j] = (TH1F*)fin->Get(Form("avgAHisto_pt%d_eta%d",i,j))->Clone(Form("avgAHisto_pt%d_eta%d",i,j));
       avgBHisto[i][j] = (TH1F*)fin->Get(Form("avgBHisto_pt%d_eta%d",i,j))->Clone(Form("avgBHisto_pt%d_eta%d",i,j));
-      //hAvgAbsPhoResponse[i][j] = (TH1F*)fin->Get(Form("hAvgAbsPhoResponse_pt%d_eta%d",i,j))->Clone(Form("hAvgAbsPhoResponse_pt%d_eta%d",i,j));
+      hAvgAbsPhoResponse[i][j] = (TH1F*)fin->Get(Form("hAvgAbsPhoResponse_pt%d_eta%d",i,j))->Clone(Form("hAvgAbsPhoResponse_pt%d_eta%d",i,j));
+
+      h_avgA[i][j]=(TH1D*)fin->Get(Form("h_avgA_%d_%d",i,j));
+      h_nEntries[i][j]=(TH1D*)fin->Get(Form("h_nEntries_%d_%d",i,j));
+      h_avgB[i][j]=(TH1D*)fin->Get(Form("h_avgB_%d_%d",i,j));
+      h_nEntriesB[i][j]=(TH1D*)fin->Get(Form("h_nEntriesB_%d_%d",i,j));
+      h_avgAbsPhoResponse[i][j]=(TH1D*)fin->Get(Form("h_avgAbsPhoResponse_%d_%d",i,j));
+      h_nEntriesAbs[i][j]=(TH1D*)fin->Get(Form("h_nEntriesAbs_%d_%d",i,j));
     }
   }
 
+  double avgA[nbins_pt][nbins_eta];
+  double avgB[nbins_pt][nbins_eta];
+
   for(int i=0; i<nbins_pt; i++){
     for(int j=0; j<nbins_eta; j++){
-      cout<<i<<" "<<j<<endl;
-    
-      hRelResponse[i]->SetBinContent(j+1,(1+avgAHisto[i][j]->GetMean())/(1-avgAHisto[i][j]->GetMean()));
-      hRelResponse[i]->SetBinError(j+1,hRelResponse[i]->GetBinContent(j+1)*(1./sqrt(avgAHisto[i][j]->GetEntries())));
-
-      hMPFResponse[i]->SetBinContent(j+1,(1+avgBHisto[i][j]->GetMean())/(1-avgBHisto[i][j]->GetMean()));
-      hMPFResponse[i]->SetBinError(j+1,hMPFResponse[i]->GetBinContent(j+1)*(1./sqrt(avgBHisto[i][j]->GetEntries())));
-
-      //hMPFAbsPhoResponse[i]->SetBinContent(j+1,hAvgAbsPhoResponse[i][j]->GetMean());
-      //hMPFAbsPhoResponse[i]->SetBinError(j+1,hMPFAbsPhoResponse[i]->GetBinContent(j+1)*(1./sqrt(hAvgAbsPhoResponse[i][j]->GetEntries())));
+      avgA[i][j] = h_avgA[i][j]->Integral()/(double)h_nEntries[i][j]->Integral();
+      avgB[i][j] = h_avgB[i][j]->Integral()/(double)h_nEntriesB[i][j]->Integral();
+      if(h_nEntries[i][j]->Integral()) hRelResponse[i]->SetBinContent(j+1,(1+avgAHisto[i][j]->GetMean())/(1-avgAHisto[i][j]->GetMean()));
+      //if(nEntries[i][j]) hRelResponse[i]->SetBinError(j+1,hRelResponse[i]->GetBinContent(j+1)*(1./sqrt(nEntries[i][j])));
+      if(h_nEntries[i][j]->Integral()) hRelResponse[i]->SetBinError(j+1,avgAHisto[i][j]->GetRMS()*(1./TMath::Sqrt(h_nEntries[i][j]->Integral())));
+      else hRelResponse[i]->SetBinContent(j+1,0);
+      
+      if(h_nEntriesB[i][j]->Integral()) hMPFResponse[i]->SetBinContent(j+1,(1+avgBHisto[i][j]->GetMean())/(1-avgBHisto[i][j]->GetMean()));
+      //if(nEntriesB[i][j]) hMPFResponse[i]->SetBinError(j+1,hMPFResponse[i]->GetBinContent(j+1)*(1./sqrt(nEntriesB[i][j])));
+      if(h_nEntriesB[i][j]->Integral()) hMPFResponse[i]->SetBinError(j+1,avgBHisto[i][j]->GetRMS()*(1./TMath::Sqrt(h_nEntriesB[i][j]->Integral())));
+      else hMPFResponse[i]->SetBinContent(j+1,0);
+   
+      if(h_nEntriesAbs[i][j]) hMPFAbsPhoResponse[i]->SetBinContent(j+1,hAvgAbsPhoResponse[i][j]->GetMean());
+      // //if(nEntriesAbs[i][j]) hMPFAbsPhoResponse[i]->SetBinError(j+1,hMPFAbsPhoResponse[i]->GetBinContent(j+1)*(1./sqrt(nEntriesAbs[i][j])));
+      if(h_nEntriesAbs[i][j]) hMPFAbsPhoResponse[i]->SetBinError(j+1,hAvgAbsPhoResponse[i][j]->GetRMS()*(1./TMath::Sqrt(h_nEntriesAbs[i][j]->Integral())));
+      else hMPFAbsPhoResponse[i]->SetBinContent(j+1,0);
 
       int totEntriesA=0, totEntriesB=0, totEntriesAbs=0;
       for(int j=0; j<nbins_eta; j++){ 
-	totEntriesA+=avgAHisto[i][j]->GetEntries(); 
-	totEntriesB+=avgBHisto[i][j]->GetEntries();
-	//totEntriesAbs+=hAvgAbsPhoResponse[i][j]->GetEntries();
+  	// totEntriesA+=h_nEntries[i][j]->Integral(); 
+  	// totEntriesB+=h_nEntriesB[i][j]->Integral();
+  	totEntriesA+=avgAHisto[i][j]->GetEntries(); 
+  	totEntriesB+=avgBHisto[i][j]->GetEntries();
+  	totEntriesAbs+=h_nEntriesAbs[i][j]->GetEntries();
       }
       hRelResponse[i]->SetEntries(totEntriesA);
       hMPFResponse[i]->SetEntries(totEntriesB);
-      //hMPFAbsPhoResponse[i]->SetEntries(totEntriesAbs);
+      hMPFAbsPhoResponse[i]->SetEntries(totEntriesAbs);
     }
   }
   
   int color[5] = {1,2,4,8,20};
-  TFile *fout = new TFile(Form("simplePlots_%disMC.root",isMC),"recreate");
+  TFile *fout = new TFile(Form("Output_SumHistos_%disMC.root",isMC),"recreate");
   fout->cd();
   for(int i=0; i<nbins_pt; i++){
     cout<<i<<endl;
     hRelResponse[i]->SetMarkerColor(color[i]);
     hRelResponse[i]->SetLineColor(color[i]);
-    hRelResponse[i]->SetTitle(Form("Rel, %g<p_{T}<%g GeV",xbins_pt[i],xbins_pt[i+1]));
+    hRelResponse[i]->SetTitle(Form("Rel, %g<p^{avg}_{T}<%g GeV",xbins_pt[i],xbins_pt[i+1]));
     hRelResponse[i]->Write();
 
     hMPFResponse[i]->SetMarkerColor(color[i]);
     hMPFResponse[i]->SetLineColor(color[i]);
     hMPFResponse[i]->SetMarkerStyle(21);
     hMPFResponse[i]->SetLineStyle(2);
-    hRelResponse[i]->SetTitle(Form("MPF, %g<p_{T}<%g GeV",xbins_pt[i],xbins_pt[i+1]));
+    hMPFResponse[i]->SetTitle(Form("MPF, %g<p^{avg}_{T}<%g GeV",xbins_pt[i],xbins_pt[i+1]));
     hMPFResponse[i]->Write();
 
     hMPFAbsPhoResponse[i]->SetMarkerColor(color[i]);
     hMPFAbsPhoResponse[i]->SetLineColor(color[i]);
-    hMPFAbsPhoResponse[i]->SetTitle(Form("MPF Abs, %g<p_{T}<%g GeV",xbins_pt[i],xbins_pt[i+1]));
+    hMPFAbsPhoResponse[i]->SetTitle(Form("MPF Abs, %g<p^{#gamma Jet}_{T}<%g GeV",xbins_pt[i],xbins_pt[i+1]));
     hMPFAbsPhoResponse[i]->Write();
   }
 
@@ -179,20 +205,20 @@ void sumDijetResponse(std::string filename="relDijetResponse_MC.root", int isMC=
     cout<<"saving c1"<<endl;
     c1->SaveAs(Form("MPFresponse_%s.pdf",type.c_str()),"RECREATE");
 
-    TCanvas *c2 = new TCanvas("c2","",600,600);
-    c2->cd();
-    hMPFAbsPhoResponse[0]->Draw();
-    TLegend *l2 = new TLegend(0.4,0.8,0.7,0.9);
-    l2->AddEntry(hMPFAbsPhoResponse[0],Form("%g<p_{T}<%g",xbins_pt[0],xbins_pt[1]));
-    for(int i=1; i<nbins_pt; i++){
-      cout<<i<<endl;
-      hMPFAbsPhoResponse[i]->Draw("same");
-      if(isMC) l1->AddEntry("",Form("%s",type.c_str()),"");
-      l2->AddEntry(hMPFAbsPhoResponse[i],Form("%g<p_{T}<%g",xbins_pt[i],xbins_pt[i+1]));
-    }
-    l2->Draw("Same");
-    cout<<"saving c2"<<endl;
-    c2->SaveAs(Form("MPFABSPhoresponse_%s.pdf",type.c_str()),"RECREATE");
+    // TCanvas *c2 = new TCanvas("c2","",600,600);
+    // c2->cd();
+    // hMPFAbsPhoResponse[0]->Draw();
+    // TLegend *l2 = new TLegend(0.4,0.8,0.7,0.9);
+    // l2->AddEntry(hMPFAbsPhoResponse[0],Form("%g<p_{T}<%g",xbins_pt[0],xbins_pt[1]));
+    // for(int i=1; i<nbins_pt; i++){
+    //   cout<<i<<endl;
+    //   hMPFAbsPhoResponse[i]->Draw("same");
+    //   if(isMC) l1->AddEntry("",Form("%s",type.c_str()),"");
+    //   l2->AddEntry(hMPFAbsPhoResponse[i],Form("%g<p_{T}<%g",xbins_pt[i],xbins_pt[i+1]));
+    // }
+    // l2->Draw("Same");
+    // cout<<"saving c2"<<endl;
+    // c2->SaveAs(Form("MPFABSPhoresponse_%s.pdf",type.c_str()),"RECREATE");
 		
   }
 
