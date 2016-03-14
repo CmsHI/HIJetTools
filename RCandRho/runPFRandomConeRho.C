@@ -81,6 +81,40 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
   
   //Printf("nentries: %d",(Int_t)fChain->GetEntries());
 
+  Int_t fgkNCentBins = 100;
+  Float_t kMinCent   = 0.;
+  Float_t kMaxCent   = 100;
+  Double_t *binsCent = new Double_t[fgkNCentBins+1];
+  for(Int_t i=0; i<=fgkNCentBins; i++) binsCent[i]=(Double_t)kMinCent + (kMaxCent-kMinCent)/fgkNCentBins*(Double_t)i ;
+
+  Int_t fgkNRhoBins = 500;
+  Float_t kMinRho   = 0.;
+  Float_t kMaxRho   = 500;
+  Double_t *binsRho = new Double_t[fgkNRhoBins+1];
+  for(Int_t i=0; i<=fgkNRhoBins; i++) binsRho[i]=(Double_t)kMinRho + (kMaxRho-kMinRho)/fgkNRhoBins*(Double_t)i ;
+
+  Int_t fgkNRhoMBins = 500;
+  Float_t kMinRhoM   = 0.;
+  Float_t kMaxRhoM   = 5;
+  Double_t *binsRhoM = new Double_t[fgkNRhoMBins+1];
+  for(Int_t i=0; i<=fgkNRhoMBins; i++) binsRhoM[i]=(Double_t)kMinRhoM + (kMaxRhoM-kMinRhoM)/fgkNRhoMBins*(Double_t)i ;
+
+  //WARNING: eta edges hard-coded. If we change this in the rho producer will not correspond anymore to the eta map
+  std::map<int,double> fMapEtaRanges;   //eta ranges
+  fMapEtaRanges[1] = -5.;
+  fMapEtaRanges[2] = -3.;
+  fMapEtaRanges[3] = -2.1;
+  fMapEtaRanges[4] = -1.3;
+  fMapEtaRanges[5] =  1.3;
+  fMapEtaRanges[6] =  2.1;
+  fMapEtaRanges[7] =  3.;
+  fMapEtaRanges[8] =  5.;
+
+  Int_t fgkNEtaBins = (Int_t)fMapEtaRanges.size()-1;
+  Double_t *binsEta = new Double_t[fgkNEtaBins+1];
+  for(Int_t i=0; i<=fgkNEtaBins; i++)
+    binsEta[i]=fMapEtaRanges.at(i+1);
+  
   TList *fOutput =  new TList();
   TH1::SetDefaultSumw2();
   
@@ -95,11 +129,22 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
   fOutput->Add(h2MultPtRCEtaVS);
   Printf("histos defined");
 
+  TH3F *fh3RhoCentEtaBin = new TH3F("fh3RhoCentEtaBin","fh3RhoCentEtaBin;centrality;#rho;#eta",fgkNCentBins,binsCent,fgkNRhoBins,binsRho,fgkNEtaBins,binsEta);
+  fOutput->Add(fh3RhoCentEtaBin);
+
+  TH3F *fh3RhoMCentEtaBin = new TH3F("fh3RhoMCentEtaBin","fh3RhoMCentEtaBin;centrality;#rho;#eta",fgkNCentBins,binsCent,fgkNRhoMBins,binsRhoM,fgkNEtaBins,binsEta);
+  fOutput->Add(fh3RhoMCentEtaBin);
+
   TH2F *fh2RhoCent = new TH2F("fh2RhoCent","fh2RhoCent;centrality;#rho",100,0,100,500,0,500);
   fOutput->Add(fh2RhoCent);
 
   TH2F *fh2RhoMCent = new TH2F("fh2RhoMCent","fh2RhoMCent;centrality;#rho_{m}",100,0,100,500,0,5);
   fOutput->Add(fh2RhoMCent);
+
+  delete [] binsCent;
+  delete [] binsRho;
+  delete [] binsRhoM;
+  delete [] binsEta;
 
   Int_t startEntry = 0;
   Int_t lastEntry = fChain->GetEntries();//100;
@@ -117,7 +162,10 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
 
     if(!MinBiasTriggerBit) continue;
     if(!phfCoincFilter) continue;
-    
+
+    Double_t cent = (Double_t)hiBin/2.;
+
+    //pick random position for random cone
     double etaRC = rnd->Rndm() * (maxEta - minEta) + minEta;
     double phiRC = rnd->Rndm() * (maxPhi - minPhi) + minPhi;
     
@@ -128,6 +176,12 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
         rhoCur = fFJRho.rho->at(ieta);
         rhomCur = fFJRho.rhom->at(ieta);
       }
+    }
+
+    //store rho and rhom in eta slices used in derivation
+    for(unsigned int ieta = 0; ieta<fFJRho.etaMin->size(); ++ieta) {
+      fh3RhoCentEtaBin->Fill(cent,fFJRho.rho->at(ieta),fFJRho.etaMin->at(ieta) + 0.5*(fFJRho.etaMax->at(ieta)-fFJRho.etaMin->at(ieta)));
+      fh3RhoMCentEtaBin->Fill(cent,fFJRho.rhom->at(ieta),fFJRho.etaMin->at(ieta) + 0.5*(fFJRho.etaMax->at(ieta)-fFJRho.etaMin->at(ieta)));
     }
 
     double ptRC = 0.;
@@ -146,7 +200,6 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
 
     double ptRCSub = ptRC - rhoCur*TMath::Pi()*radiusRC*radiusRC;
     
-    Double_t cent = (Double_t)hiBin/2.;
     h2CentPtRCEta->Fill(cent,ptRC,etaRC);
     h2CentPtRCEtaVS->Fill(cent,ptRCSub,etaRC);
 
