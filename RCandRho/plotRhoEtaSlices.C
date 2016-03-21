@@ -54,6 +54,7 @@ void plotRhoEtaSlices(TString str = "RandomConesPF.root", TString tag = "HYDJETM
   }
 
   c1->SaveAs("RhoCentEtaBins.png");
+  c1->SaveAs("RhoCentEtaBins.pdf");
   
   TCanvas *c2 = new TCanvas("c2","c2: rho_m",900,840);
   c2->Divide(3,3);
@@ -67,5 +68,6 @@ void plotRhoEtaSlices(TString str = "RandomConesPF.root", TString tag = "HYDJETM
   }
 
   c2->SaveAs("RhoMCentEtaBins.png");
+  c2->SaveAs("RhoMCentEtaBins.pdf");
   
 }
