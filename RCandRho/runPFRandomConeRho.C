@@ -138,6 +138,12 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
   TH3D *h2CentPtRCEtaVS = new TH3D("h2CentPtRCEtaVS","h2CentPtRCEtaVS;centrality;p_{T,RC}-#rho A;#eta",100,0,100,300,-100.,200.,60,-6,6);
   fOutput->Add(h2CentPtRCEtaVS);
 
+  TH3D *h2EHFPtRCEta = new TH3D("h2EHFPtRCEta","h2EHFPtRCEta;sum E_{HF};p_{T,RC};#eta",fgkNEHFBins,kMinEHF,kMaxEHF,300,-100.,200.,60,-6,6);
+  fOutput->Add(h2EHFPtRCEta);
+  TH3D *h2EHFPtRCEtaVS = new TH3D("h2EHFPtRCEtaVS","h2EHFPtRCEtaVS;sum E_{HF};p_{T,RC}-#rho A;#eta",fgkNEHFBins,kMinEHF,kMaxEHF,300,-100.,200.,60,-6,6);
+  fOutput->Add(h2EHFPtRCEtaVS);
+
+
   TH3D *h2MultPtRCEta = new TH3D("h2MultPtRCEta","h2MultPtRCEta;multiplicity;p_{T,RC};#eta",3000,0,6000,200,-10.,100.,60,-6,6);
   fOutput->Add(h2MultPtRCEta);
   TH3D *h2MultPtRCEtaVS = new TH3D("h2MultPtRCEtaVS","h2MultPtRCEtaVS;multiplicity;p_{T,RC}-#rho A;#eta",3000,0,6000,200,-100.,100.,60,-6,6);
@@ -226,6 +232,9 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
     
     h2CentPtRCEta->Fill(cent,ptRC,etaRC);
     h2CentPtRCEtaVS->Fill(cent,ptRCSub,etaRC);
+
+    h2EHFPtRCEta->Fill(hiHF,ptRC,etaRC);
+    h2EHFPtRCEtaVS->Fill(hiHF,ptRCSub,etaRC);
 
     h2MultPtRCEta->Fill(pfCount,ptRC,etaRC);
     h2MultPtRCEtaVS->Fill(pfCount,ptRCSub,etaRC);
