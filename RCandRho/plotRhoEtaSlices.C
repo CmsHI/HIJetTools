@@ -14,7 +14,7 @@ const Double_t eps = 0.000001;
 
 void plotRhoEtaSlices(TString str = "RandomConesPF.root", TString tag = "HYDJETMB") {
 
-    gStyle->SetOptStat(0000);
+  gStyle->SetOptStat(0000);
   gStyle->SetOptTitle(0);
 
 
@@ -23,9 +23,12 @@ void plotRhoEtaSlices(TString str = "RandomConesPF.root", TString tag = "HYDJETM
   TH3F *fh3RhoCentEtaBin   = dynamic_cast<TH3F*>(f->Get("fh3RhoCentEtaBin"));
   TH3F *fh3RhoMCentEtaBin  = dynamic_cast<TH3F*>(f->Get("fh3RhoMCentEtaBin"));
   
-  const int netabins = 7;
-  double etaMin[netabins] = {-5.,-3.,-2.1,-1.3,1.3,2.1,3.};
-  double etaMax[netabins] = {-3.,-2.1,-1.3,1.3,2.1,3.,5.};
+  // const int netabins = 7;
+  // double etaMin[netabins] = {-5.,-3.,-2.1,-1.3,1.3,2.1,3.};
+  // double etaMax[netabins] = {-3.,-2.1,-1.3,1.3,2.1,3.,5.};
+  const int netabins = 9;
+  double etaMin[netabins] = {-5.,-3.,-2.,-1.5,-1.,1.,1.5,2.1,3.};
+  double etaMax[netabins] = {-3.,-2.,-1.5,-1.,1.,1.5,2.1,3.,5.};
 
   TH2D *h2RhoCent[netabins];
   TH2D *h2RhoMCent[netabins];
