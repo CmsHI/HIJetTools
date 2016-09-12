@@ -14,6 +14,9 @@ void plotRandomCones(TString str = "output.root", TString tag = "", double etami
   TH3D *h3CentPtEta = dynamic_cast<TH3D*>(f->Get("h2CentPtRCEta"));
   TH3D *h3CentPtEtaVS = dynamic_cast<TH3D*>(f->Get("h2CentPtRCEtaVS"));
 
+  TH3D *h3EHFPtEta = dynamic_cast<TH3D*>(f->Get("h2EHFPtRCEta"));
+  TH3D *h3EHFPtEtaVS = dynamic_cast<TH3D*>(f->Get("h2EHFPtRCEtaVS"));
+  
   int minbinEta, maxbinEta;
   minbinEta = h3CentPtEta->GetZaxis()->FindBin(etamin+0.000001);
   maxbinEta = h3CentPtEta->GetZaxis()->FindBin(etamax-0.000001);
@@ -24,10 +27,25 @@ void plotRandomCones(TString str = "output.root", TString tag = "", double etami
   h3CentPtEtaVS->GetZaxis()->SetRange(minbinEta,maxbinEta);
   TH2D *h2CentPtVS = dynamic_cast<TH2D*>(h3CentPtEtaVS->Project3D("yx"));
 
+  minbinEta = h3EHFPtEta->GetZaxis()->FindBin(etamin+0.000001);
+  maxbinEta = h3EHFPtEta->GetZaxis()->FindBin(etamax-0.000001);
+  h3EHFPtEta->GetZaxis()->SetRange(minbinEta,maxbinEta);
+  TH2D *h2EHFPt = dynamic_cast<TH2D*>(h3EHFPtEta->Project3D("yx"));
+  minbinEta = h3EHFPtEtaVS->GetZaxis()->FindBin(etamin+0.000001);
+  maxbinEta = h3EHFPtEtaVS->GetZaxis()->FindBin(etamax-0.000001);
+  h3EHFPtEtaVS->GetZaxis()->SetRange(minbinEta,maxbinEta);
+  TH2D *h2EHFPtVS = dynamic_cast<TH2D*>(h3EHFPtEtaVS->Project3D("yx"));
+
   TCanvas *c1 = new TCanvas("c1","c1",500,400);
   gPad->SetLogz();
   TH1F *f1 = DrawFrame(0.,100.,-50.,100.,"centrality (%)","p_{T}^{RC}",0.1);
   h2CentPt->Draw("colz same");
+
+  TCanvas *c11 = new TCanvas("c11","c11",500,400);
+  gPad->SetLogz();
+  TH1F *f11 = DrawFrame(0.,6000.,-50.,200.,"sum E_{HF}","p_{T}^{RC}",0.1);
+  h2EHFPt->Rebin2D(5,5);
+  h2EHFPt->Draw("colz same");
 
   TCanvas *c2 = new TCanvas("c2","c2",500,400);
   gPad->SetLogz();
@@ -36,6 +54,12 @@ void plotRandomCones(TString str = "output.root", TString tag = "", double etami
 
   DrawLatex(0.25,0.87,tag.Data());
   if(run>0)   DrawLatex(0.25,0.81,Form("run: %d",run));
+
+  TCanvas *c22 = new TCanvas("c22","c22",500,400);
+  gPad->SetLogz();
+  TH1F *f22 = DrawFrame(0.,6000.,-80.,100.,"sum E_{HF}","p_{T}^{RC}",0.1);
+  h2EHFPtVS->Rebin2D(5,5);
+  h2EHFPtVS->Draw("colz same");
   
   c1->SaveAs(Form("RCPtVsCentNoSub%s.png",tagSave.Data()));
   c2->SaveAs(Form("RCPtVsCentSub%s.png",tagSave.Data()));
@@ -43,6 +67,13 @@ void plotRandomCones(TString str = "output.root", TString tag = "", double etami
   c2->SaveAs(Form("RCPtVsCentSub%s.pdf",tagSave.Data()));
   c1->SaveAs(Form("RCPtVsCentNoSub%s.eps",tagSave.Data()));
   c2->SaveAs(Form("RCPtVsCentSub%s.eps",tagSave.Data()));
+
+  c11->SaveAs(Form("RCPtVsEHFNoSub%s.png",tagSave.Data()));
+  c22->SaveAs(Form("RCPtVsEHFSub%s.png",tagSave.Data()));
+  c11->SaveAs(Form("RCPtVsEHFNoSub%s.pdf",tagSave.Data()));
+  c22->SaveAs(Form("RCPtVsEHFSub%s.pdf",tagSave.Data()));
+  c11->SaveAs(Form("RCPtVsEHFNoSub%s.eps",tagSave.Data()));
+  c22->SaveAs(Form("RCPtVsEHFSub%s.eps",tagSave.Data()));
 
   const int nCent = 5;
   double centMin[nCent] = {0.,10.,30.,50.,80.};
@@ -81,7 +112,7 @@ void plotRandomCones(TString str = "output.root", TString tag = "", double etami
 
     //if(i==0) {
     //fitLHS[i] = fitLHSGaus(h1RC[i]);
-    TF1 *f1tmp = fitLHSGaus(h1RC[i],3.,1.5);
+    TF1 *f1tmp = fitLHSGaus(h1RC[i],2.,0.5);
     fitLHS[i] = dynamic_cast<TF1*>(f1tmp->Clone(Form("fitLHS%d",i)));
       fitLHS[i]->SetName(Form("fitLHS%d",i));
       fitLHS[i]->SetTitle(Form("fitLHS%d",i));
