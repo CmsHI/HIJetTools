@@ -128,16 +128,27 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
 
   //WARNING: eta edges hard-coded. If we change this in the rho producer will not correspond anymore to the eta map
   std::map<int,double> fMapEtaRanges;   //eta ranges
+  //v1
   fMapEtaRanges[1] = -5.;
   fMapEtaRanges[2] = -3.;
-  fMapEtaRanges[3] = -2.;//-2.1;
-  fMapEtaRanges[4] = -1.5;//-1.3;
-  fMapEtaRanges[5] = -1.;// 1.3;
-  fMapEtaRanges[6] =  1.;//2.1;
-  fMapEtaRanges[7] =  1.5;
-  fMapEtaRanges[8] =  2.;
-  fMapEtaRanges[9] =  3.;
-  fMapEtaRanges[10] =  5.;
+  fMapEtaRanges[3] = -2.1;
+  fMapEtaRanges[4] = -1.3;
+  fMapEtaRanges[5] =  1.3;
+  fMapEtaRanges[6] =  2.1;
+  fMapEtaRanges[7] =  3.;
+  fMapEtaRanges[8] =  5.;
+
+  //v2
+  // fMapEtaRanges[1] = -5.;
+  // fMapEtaRanges[2] = -3.;
+  // fMapEtaRanges[3] = -2.;//-2.1;
+  // fMapEtaRanges[4] = -1.5;//-1.3;
+  // fMapEtaRanges[5] = -1.;// 1.3;
+  // fMapEtaRanges[6] =  1.;//2.1;
+  // fMapEtaRanges[7] =  1.5;
+  // fMapEtaRanges[8] =  2.;
+  // fMapEtaRanges[9] =  3.;
+  // fMapEtaRanges[10] =  5.;
 
   Int_t fgkNEtaBins = (Int_t)fMapEtaRanges.size()-1;
   Printf("fgkNEtaBins: %d",fgkNEtaBins);
