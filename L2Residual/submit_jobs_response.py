@@ -200,7 +200,7 @@ for x in samples:
 # submit jobs to bsub
     for y in range(1,filenumbers[x],interval[x]):
     	#Discard the crazy amount of emails sent for every job
-        #os.system('bsub -o /dev/null -q '+queue+' response'+x+'.csh '+str(y)+' '+str(y+interval[x]-1)+'')
+        os.system('bsub -o /dev/null -q '+queue+' response'+x+'.csh '+str(y)+' '+str(y+interval[x]-1)+'')
         #Use the one below for testing
         #os.system('bsub -q '+queue+' response'+x+'.csh '+str(y)+' '+str(y+interval[x]-1)+'')        
         print "job "+x+" "+str(y)+" submitted"
