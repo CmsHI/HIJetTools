@@ -16,7 +16,7 @@
 
 Double_t deltaR(const Double_t phi1, const Double_t phi2, const Double_t eta1, const Double_t eta2);
 
-void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/hintt/mverweij/CS/MC/velicanu-Hydjet_Quenched_MinBias_5020GeV_758p2_RECODEBUG_v0_forest_csjet_v1/0.root", Int_t nRCPerEvent = 1, int maxEvents = -1, int useRhoCorr = 0) {
+void runRhoRecalc(TString str = "root://eoscms//eos/cms/store/cmst3/group/hintt/mverweij/CS/MC/velicanu-Hydjet_Quenched_MinBias_5020GeV_758p2_RECODEBUG_v0_forest_csjet_v1/0.root", Int_t nRCPerEvent = 1, int maxEvents = -1, int useRhoCorr = 0) {
 
   double minEta = -1.5;
   double maxEta = 1.5;
@@ -66,7 +66,7 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
   fChain->SetBranchAddress("HBHENoiseFilterResult",&HBHENoiseFilterResult);
   fChain->SetBranchAddress("pprimaryVertexFilter",&pprimaryVertexFilter);
   fChain->SetBranchAddress("pcollisionEventSelection",&pcollisionEventSelection);
- 
+  
   ForestPFsVector                    fPFs;              //!PFs in tree
   if (fChain->GetBranch("nPFpart"))
     fChain->SetBranchAddress("nPFpart", &fPFs.nPFpart, &fPFs.b_nPFpart);
@@ -94,6 +94,9 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
   fChain->SetBranchAddress("rho", &fFJRho.rho, &fFJRho.b_rho);
   fChain->SetBranchAddress("rhom", &fFJRho.rhom, &fFJRho.b_rhom);
   }
+  fChain->SetBranchAddress("ptJets", &fFJRho.ptJets, &fFJRho.b_ptJets);
+  fChain->SetBranchAddress("etaJets", &fFJRho.etaJets, &fFJRho.b_etaJets);
+  fChain->SetBranchAddress("areaJets", &fFJRho.areaJets, &fFJRho.b_areaJets);
   //Printf("nentries: %d",(Int_t)fChain->GetEntries());
 
   Int_t fgkNCentBins = 100;
@@ -128,27 +131,16 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
 
   //WARNING: eta edges hard-coded. If we change this in the rho producer will not correspond anymore to the eta map
   std::map<int,double> fMapEtaRanges;   //eta ranges
-  //v1
   fMapEtaRanges[1] = -5.;
   fMapEtaRanges[2] = -3.;
-  fMapEtaRanges[3] = -2.1;
-  fMapEtaRanges[4] = -1.3;
-  fMapEtaRanges[5] =  1.3;
-  fMapEtaRanges[6] =  2.1;
-  fMapEtaRanges[7] =  3.;
-  fMapEtaRanges[8] =  5.;
-
-  //v2
-  // fMapEtaRanges[1] = -5.;
-  // fMapEtaRanges[2] = -3.;
-  // fMapEtaRanges[3] = -2.;//-2.1;
-  // fMapEtaRanges[4] = -1.5;//-1.3;
-  // fMapEtaRanges[5] = -1.;// 1.3;
-  // fMapEtaRanges[6] =  1.;//2.1;
-  // fMapEtaRanges[7] =  1.5;
-  // fMapEtaRanges[8] =  2.;
-  // fMapEtaRanges[9] =  3.;
-  // fMapEtaRanges[10] =  5.;
+  fMapEtaRanges[3] = -2.;//-2.1;
+  fMapEtaRanges[4] = -1.5;//-1.3;
+  fMapEtaRanges[5] = -1.;// 1.3;
+  fMapEtaRanges[6] =  1.;//2.1;
+  fMapEtaRanges[7] =  1.5;
+  fMapEtaRanges[8] =  2.;
+  fMapEtaRanges[9] =  3.;
+  fMapEtaRanges[10] =  5.;
 
   Int_t fgkNEtaBins = (Int_t)fMapEtaRanges.size()-1;
   Printf("fgkNEtaBins: %d",fgkNEtaBins);
@@ -160,26 +152,16 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
   
   TList *fOutput =  new TList();
   TH1::SetDefaultSumw2();
+
+  TH1F *fh1EventSel = new TH1F("fh1EventSel","fh1EventSel;sel step",10,0.,10.);
+  fOutput->Add(fh1EventSel);
   
-  TH3D *h2CentPtRCEta = new TH3D("h2CentPtRCEta","h2CentPtRCEta;centrality;p_{T,RC};#eta",100,0,100,300,-100.,200.,60,-6,6);
-  fOutput->Add(h2CentPtRCEta);
-  TH3D *h2CentPtRCEtaVS = new TH3D("h2CentPtRCEtaVS","h2CentPtRCEtaVS;centrality;p_{T,RC}-#rho A;#eta",100,0,100,300,-100.,200.,60,-6,6);
-  fOutput->Add(h2CentPtRCEtaVS);
-
-  TH3D *h2EHFPtRCEta = new TH3D("h2EHFPtRCEta","h2EHFPtRCEta;sum E_{HF};p_{T,RC};#eta",fgkNEHFBins,kMinEHF,kMaxEHF,300,-100.,200.,60,-6,6);
-  fOutput->Add(h2EHFPtRCEta);
-  TH3D *h2EHFPtRCEtaVS = new TH3D("h2EHFPtRCEtaVS","h2EHFPtRCEtaVS;sum E_{HF};p_{T,RC}-#rho A;#eta",fgkNEHFBins,kMinEHF,kMaxEHF,300,-100.,200.,60,-6,6);
-  fOutput->Add(h2EHFPtRCEtaVS);
-
-
-  TH3D *h2MultPtRCEta = new TH3D("h2MultPtRCEta","h2MultPtRCEta;multiplicity;p_{T,RC};#eta",3000,0,6000,200,-10.,100.,60,-6,6);
-  fOutput->Add(h2MultPtRCEta);
-  TH3D *h2MultPtRCEtaVS = new TH3D("h2MultPtRCEtaVS","h2MultPtRCEtaVS;multiplicity;p_{T,RC}-#rho A;#eta",3000,0,6000,200,-100.,100.,60,-6,6);
-  fOutput->Add(h2MultPtRCEtaVS);
-  Printf("histos defined");
-
   TH3F *fh3RhoCentEtaBin = new TH3F("fh3RhoCentEtaBin","fh3RhoCentEtaBin;centrality;#rho;#eta",fgkNCentBins,binsCent,fgkNRhoBins,binsRho,fgkNEtaBins,binsEta);
   fOutput->Add(fh3RhoCentEtaBin);
+
+  TH3F *fh3RhoRecalcCentEtaBin = new TH3F("fh3RhoRecalcCentEtaBin","fh3RhoRecalcCentEtaBin;centrality;#rho;#eta",fgkNCentBins,binsCent,fgkNRhoBins,binsRho,fgkNEtaBins,binsEta);
+  fOutput->Add(fh3RhoRecalcCentEtaBin);
+
 
   TH3F *fh3RhoMCentEtaBin = new TH3F("fh3RhoMCentEtaBin","fh3RhoMCentEtaBin;centrality;#rho;#eta",fgkNCentBins,binsCent,fgkNRhoMBins,binsRhoM,fgkNEtaBins,binsEta);
   fOutput->Add(fh3RhoMCentEtaBin);
@@ -190,16 +172,12 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
   TH3F *fh3RhoMEHFEtaBin = new TH3F("fh3RhoMEHFEtaBin","fh3RhoMEHFEtaBin;sum E_{HF};#rho;#eta",fgkNEHFBins,binsEHF,fgkNRhoMBins,binsRhoM,fgkNEtaBins,binsEta);
   fOutput->Add(fh3RhoMEHFEtaBin);
 
-  TH2F *fh2RhoCent = new TH2F("fh2RhoCent","fh2RhoCent;centrality;#rho",100,0,100,500,0,500);
-  fOutput->Add(fh2RhoCent);
-
-  TH2F *fh2RhoMCent = new TH2F("fh2RhoMCent","fh2RhoMCent;centrality;#rho_{m}",100,0,100,500,0,5);
-  fOutput->Add(fh2RhoMCent);
-
   delete [] binsCent;
   delete [] binsRho;
   delete [] binsRhoM;
   delete [] binsEta;
+
+  std::vector<float> rhoRecalc;
 
   Int_t startEntry = 0;
   Int_t lastEntry = fChain->GetEntries();//100;
@@ -208,34 +186,32 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
     lastEntry = maxEvents;
   Printf("lastEntry: %d",lastEntry);
 
-  TRandom3 *rnd = new TRandom3();
- 
   for (int j=startEntry; j<lastEntry; j++) {
+    rhoRecalc.clear();
     fChain->GetEntry(j);
     if(j%1000==0)
       std::cout << "entry: "<< j << std::endl;
 
+    double selStep = 0.5;
+    fh1EventSel->Fill(selStep);
     if(!MinBiasTriggerBit) continue;
+    selStep+=1.;
+    fh1EventSel->Fill(selStep);
     //if(!CaloJet100TriggerBit) continue;
     if(!phfCoincFilter) continue;
+    selStep+=1.;
+    fh1EventSel->Fill(selStep);
     if(!HBHENoiseFilterResult) continue;
-    if(!pcollisionEventSelection) continue;
+    selStep+=1.;
+    fh1EventSel->Fill(selStep);
     if(!pprimaryVertexFilter) continue;
-
-    Double_t cent = (Double_t)hiBin/2.;
-
-    //pick random position for random cone
-    double etaRC = rnd->Rndm() * (maxEta - minEta) + minEta;
-    double phiRC = rnd->Rndm() * (maxPhi - minPhi) + minPhi;
+    selStep+=1.;
+    fh1EventSel->Fill(selStep);
+    if(!pcollisionEventSelection) continue;
+    selStep+=1.;
+    fh1EventSel->Fill(selStep);
     
-    float rhoCur = -1.;
-    float rhomCur = -1.;
-    for(unsigned int ieta = 0; ieta<fFJRho.etaMin->size(); ++ieta) {
-      if(etaRC>=fFJRho.etaMin->at(ieta) && etaRC<fFJRho.etaMax->at(ieta)) {
-        rhoCur = fFJRho.rho->at(ieta);
-        rhomCur = fFJRho.rhom->at(ieta);
-      }
-    }
+    Double_t cent = (Double_t)hiBin/2.;
 
     //store rho and rhom in eta slices used in derivation
     for(unsigned int ieta = 0; ieta<fFJRho.etaMin->size(); ++ieta) {
@@ -246,38 +222,76 @@ void runPFRandomConeRho(TString str = "root://eoscms//eos/cms/store/cmst3/group/
       fh3RhoMEHFEtaBin->Fill(hiHF,fFJRho.rhom->at(ieta),fFJRho.etaMin->at(ieta) + 0.5*(fFJRho.etaMax->at(ieta)-fFJRho.etaMin->at(ieta)));
     }
 
-    double ptRC = 0.;
-    Int_t pfCount = 0;
-    for(Int_t i = 0; i<fPFs.nPFpart; i++) {
-      double pt = fPFs.pfPt->at(i);
-      double phi = fPFs.pfPhi->at(i);
-      double eta = fPFs.pfEta->at(i);
+    //Recalculate rho
+    int nExcl_ = 2;
+    double ptMinExcl_ = 20.;
+    double etaMaxExcl_ = 2.;
+    int nExcl2_ = 1;
+    double ptMinExcl2_ = 20.;
+    double etaMaxExcl2_ = 3.;
+    
+    static double rhoVec[999];
+    static double rhomVec[999];
+    static double etaVec[999];
+    int nacc = 0;
+    unsigned int njetsEx = 0;
+    unsigned int njetsEx2 = 0;
+    for(unsigned int ij = 0; ij<fFJRho.ptJets->size(); ++ij) {
 
-      double dr = deltaR(phi,phiRC,eta,etaRC);
-      if(dr<radiusRC) {
-        ptRC+=pt;
+      // //excluce leading kt clusters from rho calculation
+      // if(njetsEx<nExcl_ && fabs(fFJRho.etaJets->at(ij))<etaMaxExcl_ && fFJRho.ptJets->at(ij)>ptMinExcl_) {
+      //   njetsEx++;
+      //   continue;
+      // }
+      // if(njetsEx2<nExcl2_ && fabs(fFJRho.etaJets->at(ij))<etaMaxExcl2_ && fabs(fFJRho.etaJets->at(ij))>etaMaxExcl_ && fFJRho.ptJets->at(ij)>ptMinExcl2_) {
+      //   njetsEx2++;
+      //   continue;
+      // }
+
+      if(fFJRho.areaJets->at(ij)>0.) {
+        rhoVec[nacc] = fFJRho.ptJets->at(ij)/fFJRho.areaJets->at(ij);
+        etaVec[nacc] = fFJRho.etaJets->at(ij);
+        ++nacc;
       }
-      if(std::abs(eta)<2.) pfCount++;
     }
 
-    double ptRCSub = ptRC - rhoCur*TMath::Pi()*radiusRC*radiusRC;
-    
-    h2CentPtRCEta->Fill(cent,ptRC,etaRC);
-    h2CentPtRCEtaVS->Fill(cent,ptRCSub,etaRC);
+    double radius = 0.2; //distance kt clusters needs to be from edge
+    for(unsigned int ieta = 0; ieta<fFJRho.etaMin->size(); ++ieta) {
+      static double rhoVecCur[999] = {0.};
+      static double rhomVecCur[999]= {0.};
 
-    h2EHFPtRCEta->Fill(hiHF,ptRC,etaRC);
-    h2EHFPtRCEtaVS->Fill(hiHF,ptRCSub,etaRC);
+      double etaMin = fFJRho.etaMin->at(ieta)+radius;
+      double etaMax = fFJRho.etaMax->at(ieta)-radius;
+/*
+      if(etaMax<1.) {
+        etaMin = -1.3+radius;
+        etaMax =  1.3-radius;
+      }     
+ */
+      int    naccCur    = 0 ;
+      double rhoCurSum  = 0.;
+      double rhomCurSum = 0.;
+      for(int i = 0; i<nacc; i++) {
+        if(etaVec[i]>=etaMin && etaVec[i]<etaMax) {
+          rhoVecCur[naccCur] = rhoVec[i];
+          rhoCurSum += rhoVec[i];
+          ++naccCur;
+        }//eta selection
+      }//accepted jet loop
+      
+      if(naccCur>0) {
+        double rhoCur = TMath::Median(naccCur, rhoVecCur);
+        rhoRecalc.push_back(rhoCur);
+//        fh3RhoRecalcCentEtaBin->Fill(cent,rhoCur,etaMin + 0.5*(etaMax - etaMin));
+        fh3RhoRecalcCentEtaBin->Fill(cent,rhoCur,fFJRho.etaMin->at(ieta) + 0.5*(fFJRho.etaMax->at(ieta) - fFJRho.etaMin->at(ieta)));
+        //        Printf("ieta: %d eta:%f-%f rhoRecalc: %f  rhoOrig: %f",ieta,etaMin,etaMax,rhoCur,fFJRho.rho->at(ieta));
+      }
+    }//eta ranges
 
-    h2MultPtRCEta->Fill(pfCount,ptRC,etaRC);
-    h2MultPtRCEtaVS->Fill(pfCount,ptRCSub,etaRC);
-
-    fh2RhoCent->Fill(cent,rhoCur);
-    fh2RhoMCent->Fill(cent,rhomCur);
   }
 
-  if(rnd) delete rnd;
 
-  TFile *fout = new TFile("RandomConesPF.root","RECREATE");
+  TFile *fout = new TFile("RhoRecalc.root","RECREATE");
   fOutput->Write();
   fout->Write();
   fout->Close();
