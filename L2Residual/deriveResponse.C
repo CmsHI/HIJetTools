@@ -192,8 +192,8 @@ void deriveResponse(int startfile = 0,
 
     cout << "file entries: "<< jtTree->GetEntries() << endl;
 
-    //for(int ientry=0; ientry<jtTree->GetEntries(); ientry++){
-    for(int ientry=0; ientry<100; ientry++){
+    for(int ientry=0; ientry<jtTree->GetEntries(); ientry++){
+    //for(int ientry=0; ientry<100; ientry++){
       jtTree->GetEntry(ientry);
       pfTree->GetEntry(ientry);
       phoTree->GetEntry(ientry);
