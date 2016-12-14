@@ -7,3 +7,4 @@ To check closure, use deriveClosure.C
 
 All of the above is possibly to launch in batch mode on lxplus. I used a workaround in order to control 
 the submission with python. It basically generates separate file lists and .csh scripts for submission.
+Then it creates directories on eos to store the output.
