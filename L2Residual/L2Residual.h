@@ -27,8 +27,6 @@ class L2Residual
   
   TF1 *relfit_alpha_avg;
   TF1 *mpffit_alpha_avg;    
-  //TF1 *relfit_alpha[100];
-  //TF1 *mpffit_alpha[100];
   double bins_eta[100];
   int nbins_eta;
 
@@ -46,9 +44,8 @@ class L2Residual
   {
   reset();
 
-
-  double xbins_eta[] = {0.000, 0.261, 0.522, 0.783, 1.044, 1.305, 1.653, 1.930, 2.172, 2.322, 2.500, 2.650, 2.853, 3.139, 5.191};
-
+  double xbins_eta[] = {0.000, 0.261, 0.522, 0.783, 1.044, 1.305, 1.653, 1.930, 2.172, 2.322, 2.500, 2.650, 2.853, 2.964, 3.139, 3.489, 4.013, 5.191};
+  
   nbins_eta = sizeof(xbins_eta)/sizeof(double)-1;
 
   for(int ieta = 0; ieta < nbins_eta; ieta++){
@@ -59,8 +56,7 @@ class L2Residual
   higher_pt_cut = 300;
   etacut = 5.191;
    
-  //correction_file = new TFile("5tev_alpha_fits_2505_5.root");
-  correction_file = new TFile("5tev_alpha_fits_2207.root");  
+  correction_file = new TFile("1801_pythia_response_fits.root");  
 
   for(int i=0; i<nbins_eta; i++){	
 	relfit[i] = (TF1*)correction_file->Get(Form("relfit%d",i));

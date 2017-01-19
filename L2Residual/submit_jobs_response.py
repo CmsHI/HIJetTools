@@ -17,11 +17,17 @@ print
 
 
 #Sample list
-samples = ['lower','jet80','mb1','mb2','pthat30','pthat50','pthat80','pthat120']
-#samples = ['lower','jet80','pthat30','pthat50','pthat80','pthat120','herwig50','herwig100','herwig200']
+#samples = ['lower','jet80','mb1','mb2','pthat30','pthat50','pthat80','pthat120']
+#samples = ['pthat30','pthat50','pthat80','pthat120']
+samples = ['lower','jet80','pthat50','pthat80','pthat120','pthat170','herwig50','herwig100','herwig200']
+#samples = ['lower','jet80','pthat50','pthat80','pthat120','pthat170']
 #samples = ['pthat50','pthat80','pthat120','herwig50','herwig100','herwig200']
 #samples = ['herwig50','herwig100','herwig200']
+#samples = ['lower','jet80']
+#samples = ['pthat80','pthat120','pthat170']
 
+
+#samples = ['lower','jet80','pthat50','pthat80','pthat120','pthat170','herwig50','herwig100','herwig200']
 queue = "1nh" # give bsub queue -- 8nm (8 minutes), 1nh (1 hour), 8nh, 1nd (1day), 2nd, 1nw (1 week), 2nw 
 #interval = 4 # number files to be processed in a single job, take care to split your file so that you run on all files.
 
@@ -35,7 +41,7 @@ trigger = {}
 ismc = {}
 isvec = {}
 dataprefix = {}
-
+'''
 interval['lower'] = 4
 interval['jet80'] = 4
 interval['mb1'] = 4
@@ -48,6 +54,28 @@ interval['pthat120'] = 4
 interval['herwig50'] = 5
 interval['herwig100'] = 5
 interval['herwig200'] = 5
+'''
+interval['lower'] = 20
+interval['jet80'] = 20
+interval['mb1'] = 20
+interval['mb2'] = 20
+interval['pthat15'] = 20
+interval['pthat30'] = 20
+interval['pthat50'] = 20
+
+interval['pthat80'] = 20
+interval['pthat120'] = 20
+interval['pthat170'] = 20
+
+#interval['pthat80'] = 10
+#interval['pthat120'] = 1
+#interval['pthat170'] = 1
+
+interval['herwig50'] = 20
+interval['herwig100'] = 20
+interval['herwig200'] = 20
+
+
 
 filenumbers['lower'] = 500
 filenumbers['jet80'] = 500
@@ -58,13 +86,20 @@ filenumbers['pthat30'] = 500
 filenumbers['pthat50'] = 500
 filenumbers['pthat80'] = 500
 filenumbers['pthat120'] = 500
+filenumbers['pthat170'] = 500
+
+#filenumbers['pthat80'] = 463
+#filenumbers['pthat120'] = 10
+#filenumbers['pthat170'] = 10
+
+
 filenumbers['herwig50'] = 1802
 filenumbers['herwig100'] = 3251
 filenumbers['herwig200'] = 1569
 
 #For testing on small amount of input files
 #for z in samples:
-#    filenumbers[z] = 10
+#    filenumbers[z] = 50
 
 trigger['jet80'] = '\"jet80\"'
 trigger['lower'] = '\"lower\"'
@@ -75,6 +110,7 @@ trigger['pthat30'] = '\"pthat30\"'
 trigger['pthat50'] = '\"pthat50\"'
 trigger['pthat80'] = '\"pthat80\"'
 trigger['pthat120'] = '\"pthat120\"'
+trigger['pthat170'] = '\"pthat170\"'
 trigger['herwig50'] = '\"herwig50\"'
 trigger['herwig100'] = '\"herwig100\"'
 trigger['herwig200'] = '\"herwig200\"'
@@ -89,6 +125,7 @@ ismc['pthat30'] = 1
 ismc['pthat50'] = 1
 ismc['pthat80'] = 1
 ismc['pthat120'] = 1
+ismc['pthat170'] = 1
 ismc['herwig50'] = 1
 ismc['herwig100'] = 1
 ismc['herwig200'] = 1
@@ -102,6 +139,7 @@ dataprefix['pthat30'] = ''
 dataprefix['pthat50'] = ''
 dataprefix['pthat80'] = ''
 dataprefix['pthat120'] = ''
+dataprefix['pthat170'] = ''
 dataprefix['herwig50'] = ''
 dataprefix['herwig100'] = ''
 dataprefix['herwig200'] = ''
@@ -115,6 +153,7 @@ isvec['pthat30'] = 0
 isvec['pthat50'] = 0
 isvec['pthat80'] = 0
 isvec['pthat120'] = 0
+isvec['pthat170'] = 0
 isvec['herwig50'] = 1
 isvec['herwig100'] = 1
 isvec['herwig200'] = 1
@@ -129,6 +168,15 @@ filepaths['pthat30'] ="root://xrootd.cmsaf.mit.edu//store/user/krajczar/PYTHIA_Q
 filepaths['pthat50'] ="root://xrootd.cmsaf.mit.edu//store/user/krajczar/PYTHIA_QCD_TuneCUETP8M1_cfi_GEN_SIM_5020GeV/Pythia8_Dijet50_pp_TuneCUETP8M1_5020GeV_FOREST_758_PrivMC/160119_133347/"
 filepaths['pthat80'] ="root://xrootd.cmsaf.mit.edu//store/user/krajczar/PYTHIA_QCD_TuneCUETP8M1_cfi_GEN_SIM_5020GeV/Pythia8_Dijet80_pp_TuneCUETP8M1_5020GeV_FOREST_758_PrivMC/160119_133359/"
 filepaths['pthat120'] ="root://xrootd.cmsaf.mit.edu//store/user/krajczar/PYTHIA_QCD_TuneCUETP8M1_cfi_GEN_SIM_5020GeV/Pythia8_Dijet120_pp_TuneCUETP8M1_5020GeV_FOREST_758_PrivMC/160119_133414/"
+filepaths['pthat170'] ="root://xrootd.cmsaf.mit.edu//store/user/krajczar/PYTHIA_QCD_TuneCUETP8M1_cfi_GEN_SIM_5020GeV/Pythia8_Dijet170_pp_TuneCUETP8M1_5020GeV_FOREST_758_PrivMC/160119_133425/"
+
+#filepaths['pthat80'] ="root://eoscms//eos/cms/store/group/cmst3/group/hintt/mverweij/jetsPbPb/Run2/MC/PP/Pythia8_Dijet80_pp502_TuneCUETP8M1/crab_HiForestDijet80PP_v5/160701_225932/"
+#filepaths['pthat120'] ="root://eoscms//eos/cms/store/group/cmst3/group/hintt/mverweij/jetsPbPb/Run2/MC/PP/Pythia8_Dijet100_pp502_TuneCUETP8M1/crab_HiForestDijet100PP_v4/160510_111948/"
+#filepaths['pthat170'] ="root://eoscms//eos/cms/store/group/cmst3/group/hintt/mverweij/jetsPbPb/Run2/MC/PP/Pythia8_Dijet170_pp502_TuneCUETP8M1/crab_HiForestDijet170PP_v3/160428_151852/"
+
+
+
+
 filepaths['herwig50'] = "root://xrootd.cmsaf.mit.edu//store/user/dgulhan/QCD_Pt_50to100_TuneEE5C_502TeV_herwigpp_cff_py/HiForest_QCD_Pt50to100_TuneEE5C_502TeV_herwigpp_cff_py/160628_085221/"
 filepaths['herwig100'] = "root://xrootd.cmsaf.mit.edu//store/user/dgulhan/QCD_Pt_100to200_TuneEE5C_502TeV_herwigpp_cff_py/HiForest_QCD_Pt100to200_TuneEE5C_502TeV_herwigpp_cff_py/160628_085317/"
 filepaths['herwig200'] = "root://xrootd.cmsaf.mit.edu//store/user/dgulhan/QCD_Pt_200_TuneEE5C_502TeV_herwigpp_cff_py/HiForest_QCD_Pt200to9999_TuneEE5C_502TeV_herwigpp_cff_py/160628_090618/"
@@ -143,6 +191,7 @@ macro['pthat30'] = 'deriveResponse'
 macro['pthat50'] = 'deriveResponse'
 macro['pthat80'] = 'deriveResponse'
 macro['pthat120'] = 'deriveResponse'
+macro['pthat170'] = 'deriveResponse'
 macro['herwig50'] = 'deriveResponse'
 macro['herwig100'] = 'deriveResponse'
 macro['herwig200'] = 'deriveResponse'

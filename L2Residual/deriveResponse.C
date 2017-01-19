@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include "TLorentzVector.h"
 #include <TF1.h>
+#include "TNtuple.h"
 
 using namespace std;
 
@@ -80,7 +81,7 @@ void deriveResponse(int startfile = 0,
 			int vec = 0,
 			std::string infile_Forest = "pp_mc_forests.txt",
 			std::string mode = "minbias",
-			int radius = 3,
+			int radius = 4,
 			std::string out = "test.root")
 {
   TH1::SetDefaultSumw2(); 
@@ -88,14 +89,23 @@ void deriveResponse(int startfile = 0,
   const double minJetPt = 10;
 
   //double xbins_pt[] = {55.0,75.0,95.0,120.0,150.0,300.0};
-  double xbins_pt[] = {25.0,35.0,55.0,75.0,95.0,120.0,150.0,300.0}; 
+  //double xbins_pt[] = {25.0,35.0,55.0,75.0,95.0,120.0,150.0,200.0,300.0}; 
+  double xbins_pt[] = {55.0,75.0,95.0,120.0,150.0,200.0,300.0}; 
   const int nbins_pt = sizeof(xbins_pt)/sizeof(double)-1;
-  double xbins_eta[] = {0.000, 0.261, 0.522, 0.783, 1.044, 1.305, 1.653, 1.930, 2.172, 2.322, 2.500, 2.650, 2.853, 3.139, 5.191};
+  //double xbins_eta[] = {0.000, 0.261, 0.522, 0.783, 1.044, 1.305, 1.653, 1.930, 2.172, 2.322, 2.500, 2.650, 2.853, 3.139, 5.191};
+  double xbins_eta[] = {0.000, 0.261, 0.522, 0.783, 1.044, 1.305, 1.653, 1.930, 2.172, 2.322, 2.500, 2.650, 2.853, 2.964, 3.139, 3.489, 4.013, 5.191};
   const int nbins_eta = sizeof(xbins_eta)/sizeof(double)-1;
   double xbins_alpha[] = {0.1,0.15,0.2,0.25,0.3,0.35,0.4};
   const int nbins_alpha = sizeof(xbins_alpha)/sizeof(double)-1;
 
-
+  //TH1D *h_avgPt1;
+  //TH1D *h_avgPt;
+  //TH1D *h_Pt1;
+  //TH1D *h_Pt;
+  //TH1D *h_pthat;
+  //TNtuple *vars;
+  
+  
   TH1D *h_avgA[nbins_pt][nbins_eta];
   TH1D *h_avgB[nbins_pt][nbins_eta];
 
@@ -119,6 +129,13 @@ void deriveResponse(int startfile = 0,
     }
   }
 }
+  //h_avgPt1 = new TH1D("h_avgPt1","",500, 0, 500);
+  //h_avgPt = new TH1D("h_avgPt","",500, 0, 500);  
+  //h_Pt1 = new TH1D("h_Pt1","",500, 0, 500);
+  //h_Pt = new TH1D("h_Pt","",500, 0, 500);  
+  //h_pthat = new TH1D("h_pthat","",500, 0, 500);  
+  //vars = new TNtuple("vars","vars","xsec:entries");    
+  
   std::ifstream instr_Forest(infile_Forest.c_str(),std::ifstream::in);
   std::string filename_Forest;
 
@@ -137,9 +154,11 @@ void deriveResponse(int startfile = 0,
     TTree *phoTree = (TTree*)fin->Get("ggHiNtuplizer/EventTree");
     TTree *hltTree = (TTree*)fin->Get("hltanalysis/HltTree");
     TTree *skimTree = (TTree*)fin->Get("skimanalysis/HltTree");
+    //TTree *runTree = (TTree*)fin->Get("runAnalyzer/run");
+    TTree *hiTree = (TTree*)fin->Get("hiEvtAnalyzer/HiTree");
 
     float pt_F[1000], eta_F[1000], phi_F[1000], rawpt_F[1000], m_F[1000], eSum[1000], phoSum[1000];
-
+	//float xsec;
     vector<float> *phoEt=0, *phoEta=0, *phoPhi=0; 
     int nref, nPFpart, nPho;
     
@@ -166,7 +185,7 @@ void deriveResponse(int startfile = 0,
     int HBHENoiseFilterResultRun2Loose, pPAprimaryVertexFilter, pBeamScrapingFilter;
 	float pthat;
 	if (mc == 1){
-    jtTree->SetBranchAddress("pthat",&pthat);
+    hiTree->SetBranchAddress("pthat",&pthat);
     			}
     jtTree->SetBranchAddress("jtpt",pt_F);
     jtTree->SetBranchAddress("jteta",eta_F);
@@ -190,6 +209,8 @@ void deriveResponse(int startfile = 0,
     skimTree->SetBranchAddress("pPAprimaryVertexFilter", &pPAprimaryVertexFilter);
     skimTree->SetBranchAddress("pBeamScrapingFilter", &pBeamScrapingFilter);
 
+    //runTree->SetBranchAddress("xsec", &xsec);
+
     cout << "file entries: "<< jtTree->GetEntries() << endl;
 
     for(int ientry=0; ientry<jtTree->GetEntries(); ientry++){
@@ -198,9 +219,13 @@ void deriveResponse(int startfile = 0,
       pfTree->GetEntry(ientry);
       phoTree->GetEntry(ientry);
       hltTree->GetEntry(ientry);
+      //runTree->GetEntry(ientry);
+      hiTree->GetEntry(ientry);
       totalEntries++;
       if(nPFpart > 10000 || nref > 1000) cout << " warning! nPF: "<< nPFpart << " and njet: "<< nref << endl;
       if(totalEntries && totalEntries%100000==0) cout << "entry: "<< ientry << endl;
+
+	//vars->Fill(xsec);
 
     if(nref>1){
 	int rJet, pJet;
@@ -226,6 +251,13 @@ void deriveResponse(int startfile = 0,
 	if(dphi < 2.7) continue;
 	int etaBin = findEtaBin(eta_F[pJet],nbins_eta,xbins_eta);
 	int ptBin = findPtBin(avgPt,nbins_pt,xbins_pt);
+	
+	//h_avgPt->Fill(avgPt);
+	//h_Pt->Fill(pt_F[0]);
+	//h_Pt->Fill(pt_F[1]);
+	//h_pthat->Fill(pthat);
+	
+	
 	if (mc == 0){
 	if (mode=="jet80" && HLT_AK4PFJet80_Eta5p1_v1 == 0) continue;
 	if (mode=="lower" && HLT_AK4PFJet60_Eta5p1_v1 == 0 && HLT_AK4PFJet40_Eta5p1_v1 == 0) continue;
@@ -234,15 +266,26 @@ void deriveResponse(int startfile = 0,
 	if (mode=="lower" && HLT_AK4PFJet40_Eta5p1_v1 == 1 && (avgPt<55 || avgPt>=75)) continue;
 	if (mode=="minbias" && (avgPt<25 || avgPt>=55)) continue;
 				}
+	//else {
+	//if (pthat<xbins_pt[ptBin] || pthat>xbins_pt[ptBin+1]) continue;
+	//if (avgPt < 25 ) continue;
+	//}
 	else {
     if (mode=="pthat30" && (avgPt>=55 || avgPt<25 )) continue;
     if (mode=="pthat50" && (avgPt>=75 || avgPt<55 )) continue;
     if (mode=="pthat80" && (avgPt>=120 || avgPt<75 )) continue;
-    if (mode=="pthat120" && avgPt<120 ) continue;    
+    if (mode=="pthat120" && (avgPt>=200 || avgPt<120 )) continue;    
+    if (mode=="pthat170" && avgPt<200 ) continue;    
+    if (mode=="herwig50" && (avgPt>=95 || avgPt<55 )) continue;
+    if (mode=="herwig100" && (avgPt>=200 || avgPt<95 )) continue;
+    if (mode=="herwig200" && (avgPt<200 )) continue;
 		  }
+	//h_avgPt1->Fill(avgPt);
+	//h_Pt1->Fill(pt_F[0]);
+	//h_Pt1->Fill(pt_F[1]);
     double w;
-    if (mode=="herwig100") w = 0.000000052;
-    else if (mode=="herwig200") w = 0.000000002;
+    if (mode=="herwig100") w = 0.35998;
+    else if (mode=="herwig200") w = 0.03783;
     else w = 1.0;
 	//Starting MPF Method
 	TLorentzVector missEtJets = findMissEtJets(nref, pt_F, rawpt_F, eta_F, phi_F, m_F);	
@@ -273,7 +316,12 @@ void deriveResponse(int startfile = 0,
   TFile *fout;
   fout = new TFile(Form("%s",out.c_str()),"recreate");
   fout->cd();
-  
+  //h_avgPt1->Write();
+  //h_avgPt->Write();
+  //h_Pt1->Write();
+  //h_Pt->Write();
+  //vars->Write();
+  //h_pthat->Write();
   for(int i=0; i<nbins_pt; i++){
 
     for(int j=0; j<nbins_eta; j++){
